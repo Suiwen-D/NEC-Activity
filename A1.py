@@ -177,7 +177,7 @@ y_test_normalized, _, _ = normalize_data(y_test, y_mean, y_std)
 # Creating Neural Network Models
 model = NeuralNet(layers=[X_train_normalized.shape[1], 10, 1], learning_rate=0.0001, momentum=0.9, l2_reg=0.001)
 
-# training the model
+# train the model
 train_errors, val_errors = model.train(X_train_normalized, y_train_normalized, epochs=1000, val_data=(X_val_normalized, y_val_normalized))
 
 
@@ -215,15 +215,40 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.neural_network import MLPRegressor
 import matplotlib.pyplot as plt
 
-# Defining Evaluation Functions
+# Logarithmic transformation of target values
+y_train_log = np.log1p(y_train)  # 1 + log(x)
+y_test_log = np.log1p(y_test)
+y_val_log = np.log1p(y_val)
+
+# Training Model after Logarithmic Transformation
+model = NeuralNet(layers=[X_train_normalized.shape[1], 10, 1], learning_rate=0.0001, momentum=0.9, l2_reg=0.001)
+train_errors, val_errors = model.train(X_train_normalized, y_train_log, epochs=1000, val_data=(X_val_normalized, y_val_log))
+
+# Predicting and Inverting Transformations
+y_pred_log = model.predict(X_test_normalized)
+y_pred = np.expm1(y_pred_log)  # Restore to Original Space
+
+# Calculating Test Errors
+test_error = mean_squared_error(y_test, y_pred)
+print(f"Test Error (MSE): {test_error}")
+
+# Fix computation problems with MAP
 def evaluate_metrics(y_true, y_pred):
+    y_true = np.array(y_true).reshape(-1)
+    y_pred = np.array(y_pred).reshape(-1)
     mse = mean_squared_error(y_true, y_pred)
     mae = mean_absolute_error(y_true, y_pred)
-    # Prevent dividing by zero: ignoring a value of zero in computation of MAPE
-    mape = np.mean(np.abs((y_true - y_pred) / (y_true + 1e-8))) * 100  
+    mask = y_true > 1e-8  # Ignore values near zero
+    mape = np.mean(np.abs((y_true[mask] - y_pred[mask]) / y_true[mask])) * 100
     return mse, mae, mape
 
-# Hyperparametric Comparison and Selection
+# Output target value range
+print(f"Target Value Range: Min={y_train.min()}, Max={y_train.max()}")
+
+
+
+
+#Hyperparametric Comparison and Selection
 hyperparameters = [
     {'layers': [X_train_normalized.shape[1], 10, 1], 'epochs': 1000, 'lr': 0.0001, 'momentum': 0.9},
     {'layers': [X_train_normalized.shape[1], 20, 10, 1], 'epochs': 1000, 'lr': 0.0001, 'momentum': 0.8},
