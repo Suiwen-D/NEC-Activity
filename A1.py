@@ -4,6 +4,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.neural_network import MLPRegressor
 import matplotlib.pyplot as plt
+from sklearn.model_selection import KFold
+
 
 
 # Define the activation function and its derivatives
@@ -117,6 +119,9 @@ class NeuralNet:
                 self.deltas.append(delta)
         self.deltas.reverse()
         for i in range(len(self.weights)):
+            
+            #Optional Part 1: Study the effect of the different regularization techniques in the Neural Network
+
             self.d_w[i] = (
                 -self.learning_rate * np.dot(self.deltas[i], self.xi[i].T)
                 + self.momentum * self.prev_weight_changes[i]
@@ -189,8 +194,8 @@ y_pred_normalized = model.predict(X_test_normalized)
 y_pred = y_pred_normalized * y_std + y_mean
 
 # Calculating Test Errors
-test_error = model.calculate_error(y_pred, y_test)
-print(f"Test Error: {test_error}")
+# test_error = model.calculate_error(y_pred, y_test)
+# print(f"Test Error: {test_error}")
 
 
 
@@ -228,9 +233,9 @@ train_errors, val_errors = model.train(X_train_normalized, y_train_log, epochs=1
 y_pred_log = model.predict(X_test_normalized)
 y_pred = np.expm1(y_pred_log)  # Restore to Original Space
 
-# Calculating Test Errors
-test_error = mean_squared_error(y_test, y_pred)
-print(f"Test Error (MSE): {test_error}")
+# # Calculating Test Errors
+# test_error = mean_squared_error(y_test, y_pred)
+# print(f"Test Error (MSE): {test_error}")
 
 # Fix computation problems with MAP
 def evaluate_metrics(y_true, y_pred):
@@ -248,7 +253,7 @@ print(f"Target Value Range: Min={y_train.min()}, Max={y_train.max()}")
 
 
 
-#Hyperparametric Comparison and Selection
+#Part 3.1 Hyperparametric Comparison and Selection
 hyperparameters = [
     {'layers': [X_train_normalized.shape[1], 10, 1], 'epochs': 1000, 'lr': 0.0001, 'momentum': 0.9},
     {'layers': [X_train_normalized.shape[1], 20, 10, 1], 'epochs': 1000, 'lr': 0.0001, 'momentum': 0.8},
@@ -288,7 +293,7 @@ if best_train_errors and best_val_errors:  # Ensure Error Data Exists
     plt.legend()
     plt.show()
 
-# Model Results Comparison
+# Part 3.2 Model Results Comparison
 # 1. multiple linear regression
 mlr = LinearRegression()
 mlr.fit(X_train_normalized, y_train_normalized)
@@ -305,7 +310,7 @@ mse_mlp, mae_mlp, mape_mlp = evaluate_metrics(y_test, y_pred_mlp)
 
 # Compare three models
 print("\nModel Comparison:")
-print(f"Your Neural Network - MSE: {test_error:.4f}, MAE: {mae_mlr:.4f}, MAPE: {mape_mlr:.2f}%")
+# print(f"Your Neural Network - MSE: {test_error:.4f}, MAE: {mae_mlr:.4f}, MAPE: {mape_mlr:.2f}%")
 print(f"Linear Regression - MSE: {mse_mlr:.4f}, MAE: {mae_mlr:.4f}, MAPE: {mape_mlr:.2f}%")
 print(f"MLP Regressor - MSE: {mse_mlp:.4f}, MAE: {mae_mlp:.4f}, MAPE: {mape_mlp:.2f}%")
 
