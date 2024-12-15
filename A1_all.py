@@ -119,9 +119,7 @@ class NeuralNet:
                 self.deltas.append(delta)
         self.deltas.reverse()
         for i in range(len(self.weights)):
-            
             #Optional Part 1: Study the effect of the different regularization techniques in the Neural Network
-
             self.d_w[i] = (
                 -self.learning_rate * np.dot(self.deltas[i], self.xi[i].T)
                 + self.momentum * self.prev_weight_changes[i]
@@ -158,6 +156,46 @@ class NeuralNet:
     def validate(self, X_val, y_val):
         y_pred = self.predict(X_val)
         return self.calculate_error(y_pred, y_val)
+    
+    def cross_validate(self, X, y, k=5, epochs=100, learning_rate=0.001, momentum=0.9, l2_reg=0.001):
+        kf = KFold(n_splits=k, shuffle=True)
+        mse_scores = []
+        mae_scores = []
+        mape_scores = []
+
+        for train_index, val_index in kf.split(X):
+            X_train, X_val = X[train_index], X[val_index]
+            y_train, y_val = y[train_index], y[val_index]
+
+        # 数据归一化（这里假设使用之前定义的normalize_data函数，你可能需要根据实际情况调整）
+            X_train_normalized, X_mean, X_std = normalize_data(X_train)
+            X_val_normalized, _, _ = normalize_data(X_val, X_mean, X_std)
+            y_train_normalized, y_mean, y_std = normalize_data(y_train)
+            y_val_normalized, _, _ = normalize_data(y_val, y_mean, y_std)
+
+        # 创建新的模型实例，使用当前的超参数设置
+            model = NeuralNet(
+                layers=self.layers,
+                learning_rate=learning_rate,
+                momentum=momentum,
+                l2_reg=l2_reg
+            )
+
+        # 训练模型
+            train_errors, val_errors = model.train(
+                X_train_normalized, y_train_normalized, epochs=epochs, val_data=(X_val_normalized, y_val_normalized)
+            )
+
+        # 在验证集上进行预测
+            y_pred = model.predict(X_val_normalized) * y_std + y_mean
+
+        # 计算评估指标
+            mse, mae, mape = evaluate_metrics(y_val, y_pred)
+            mse_scores.append(mse)
+            mae_scores.append(mae)
+            mape_scores.append(mape)
+
+        return np.mean(mse_scores), np.mean(mae_scores), np.mean(mape_scores)
 
 
 # Loading Data Sets
@@ -194,8 +232,8 @@ y_pred_normalized = model.predict(X_test_normalized)
 y_pred = y_pred_normalized * y_std + y_mean
 
 # Calculating Test Errors
-# test_error = model.calculate_error(y_pred, y_test)
-# print(f"Test Error: {test_error}")
+test_error = model.calculate_error(y_pred, y_test)
+print(f"Test Error: {test_error}")
 
 
 
@@ -233,9 +271,9 @@ train_errors, val_errors = model.train(X_train_normalized, y_train_log, epochs=1
 y_pred_log = model.predict(X_test_normalized)
 y_pred = np.expm1(y_pred_log)  # Restore to Original Space
 
-# # Calculating Test Errors
-# test_error = mean_squared_error(y_test, y_pred)
-# print(f"Test Error (MSE): {test_error}")
+# Calculating Test Errors
+test_error = mean_squared_error(y_test, y_pred)
+print(f"Test Error (MSE): {test_error}")
 
 # Fix computation problems with MAP
 def evaluate_metrics(y_true, y_pred):
@@ -293,6 +331,10 @@ if best_train_errors and best_val_errors:  # Ensure Error Data Exists
     plt.legend()
     plt.show()
 
+# Part 2: Introduce Cross Validation in the model selection and validation 
+mse, mae, mape = model.cross_validate(X_train_normalized, y_train_normalized, k=5, epochs=100, learning_rate=0.001, momentum=0.9, l2_reg=0.001)
+print(f"Cross-Validation Results - MSE: {mse:.4f}, MAE: {mae:.4f}, MAPE: {mape:.2f}%")
+
 # Part 3.2 Model Results Comparison
 # 1. multiple linear regression
 mlr = LinearRegression()
@@ -310,7 +352,7 @@ mse_mlp, mae_mlp, mape_mlp = evaluate_metrics(y_test, y_pred_mlp)
 
 # Compare three models
 print("\nModel Comparison:")
-# print(f"Your Neural Network - MSE: {test_error:.4f}, MAE: {mae_mlr:.4f}, MAPE: {mape_mlr:.2f}%")
+print(f"Your Neural Network - MSE: {test_error:.4f}, MAE: {mae_mlr:.4f}, MAPE: {mape_mlr:.2f}%")
 print(f"Linear Regression - MSE: {mse_mlr:.4f}, MAE: {mae_mlr:.4f}, MAPE: {mape_mlr:.2f}%")
 print(f"MLP Regressor - MSE: {mse_mlp:.4f}, MAE: {mae_mlp:.4f}, MAPE: {mape_mlp:.2f}%")
 
